@@ -1,8 +1,0 @@
-/opt/keycloak/bin/kcadm.sh get components -r AD \
-  -q parent="UUID_LDAP" |
-jq -r '.[] |
-  select(
-    (.name | ascii_downcase | contains("kerberos")) or
-    (.providerId | ascii_downcase | contains("kerberos"))
-  ) |
-  [.name, .providerId, .id] | @tsv'
