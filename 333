@@ -1,19 +1,13 @@
 SELECT
     u.username,
     ua.value AS kerberos_principal,
-    CONCAT(u.username, '@sts.nest') AS principal_estimat,
-    CASE
-        WHEN LOWER(ua.value) =
-             LOWER(CONCAT(u.username, '@sts.nest'))
-        THEN 'DOAR LITERE MARI/MICI'
-        ELSE 'DIFERENTA DE NUME'
-    END AS tip_diferenta
+    CONCAT(u.username, '@sts.nest') AS principal_estimat
 FROM user_entity u
 JOIN user_attribute ua ON ua.user_id = u.id
 JOIN realm r ON r.id = u.realm_id
 WHERE r.name = 'AD'
   AND u.enabled = 1
   AND ua.name = 'KERBEROS_PRINCIPAL'
-  AND BINARY ua.value <>
-      BINARY CONCAT(u.username, '@sts.nest')
-ORDER BY tip_diferenta, u.username;
+  AND LOWER(ua.value) <>
+      LOWER(CONCAT(u.username, '@sts.nest'))
+ORDER BY u.username;
