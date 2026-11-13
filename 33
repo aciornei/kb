@@ -1,0 +1,24 @@
+LDAP_ID="UUID_UL_TAU"
+
+/opt/keycloak/bin/kcadm.sh get components/$LDAP_ID -r AD |
+jq '.config | with_entries(
+  select(.key | test("invalid|remove|sync"; "i"))
+)'
+
+/opt/keycloak/bin/kcadm.sh create clear-user-cache \
+  -r AD -s realm=AD
+
+  /opt/keycloak/bin/kcadm.sh get users -r AD \
+  -q username="utilizator_sters" \
+  -q exact=true
+
+
+  SELECT
+    username,
+    enabled,
+    federation_link
+FROM user_entity
+WHERE username = 'utilizator_sters'
+  AND realm_id = (
+      SELECT id FROM realm WHERE name = 'AD'
+  );
