@@ -1,0 +1,13 @@
+LDAP_ID="UUID_UL_TAU"
+
+/opt/keycloak/bin/kcadm.sh get components/$LDAP_ID -r AD |
+jq '{
+  name,
+  providerId,
+  kerberos: (
+    .config |
+    with_entries(
+      select(.key | test("kerberos|principal|import"; "i"))
+    )
+  )
+}'
