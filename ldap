@@ -1,0 +1,24 @@
+openssl s_client \
+  -connect dc01.domeniu.ro:636 \
+  -servername dc01.domeniu.ro \
+  -CAfile /cale/rootca.crt \
+  -verify_hostname dc01.domeniu.ro \
+  -verify_return_error \
+  -showcerts </dev/null
+
+
+
+LDAPTLS_CACERT=/cale/rootca.crt \
+LDAPTLS_REQCERT=demand \
+ldapsearch -x \
+  -H ldaps://dc01.domeniu.ro:636 \
+  -b "" -s base defaultNamingContext
+
+ldap_servers: ldaps://dc01.domeniu.ro:636
+ldap_version: 3
+ldap_start_tls: no
+ldap_tls_check_peer: yes
+ldap_tls_cacert_file: /cale/rootca.crt
+
+
+openssl x509 -in /cale/rootca.crt -noout -subject -issuer -dates
