@@ -1,0 +1,16 @@
+filebeat.inputs:
+
+- type: journald
+  id: postgresql-journald
+  enabled: true
+
+  units:
+    - postgresql-12.service
+
+  seek: since
+  since: -24h
+
+  fields:
+    service: postgresql
+    log_type: database
+  fields_under_root: true
