@@ -1,0 +1,9 @@
+watch -n 5 "ss -ntip state established \
+'( sport = :514 or sport = :1514 or sport = :5044 or sport = :12201 )'"
+
+tcpdump -ni any -Q in \
+'ip and tcp and (dst port 514 or dst port 1514 or dst port 5044 or dst port 12201) and
+(ip[2:2] - ((ip[0]&0xf)<<2) - ((tcp[12]&0xf0)>>2) > 0)'
+
+tcpdump -ni any -Q in \
+'udp and (dst port 514 or dst port 1514 or dst port 12201)'
