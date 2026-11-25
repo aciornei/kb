@@ -1,0 +1,55 @@
+filebeat.inputs:
+
+- type: filestream
+  id: docker-filestream
+  enabled: true
+
+  paths:
+    - /var/lib/docker/containers/*/*-json.log
+
+  parsers:
+    - container:
+        stream: all
+        format: docker
+
+  fields:
+    service: docker
+    log_type: container
+  fields_under_root: true
+
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: false
+
+tags: ["intranet-DTI-docker"]
+
+output.logstash:
+  hosts: ["172.20.19.18:5044"]
+
+processors:
+  - add_host_metadata: ~
+
+  - add_docker_metadata:
+      host: "unix:///var/run/docker.sock"
+
+  - drop_fields:
+      fields:
+        - agent.ephemeral_id
+        - agent.id
+        - agent.name
+        - ecs.version
+        - host.os.codename
+        - host.os.family
+        - host.os.name
+        - host.os.platform
+        - host.os.type
+        - host.architecture
+        - host.containerized
+        - host.id
+      ignore_missing: true
+
+logging.metrics.enabled: false
+logging.level: warning
+
+queue.disk:
+  max_size: 10GB
