@@ -1,0 +1,8 @@
+tcpdump -ni any -Q in \
+'(dst port 514 or dst port 1514 or dst port 5044 or dst port 12201) \
+and not (src host IP_NOD1 or src host IP_NOD2 or src host IP_NOD3 or src host IP_NOD4)'
+
+
+ss -ntp state established
+
+ss -ntp state established | grep -E ':(514|1514|5044|12201)\b'
