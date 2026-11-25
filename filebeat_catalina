@@ -1,0 +1,19 @@
+filebeat.inputs:
+
+- type: filestream
+  id: tomcat-catalina
+  enabled: true
+  paths:
+    - /opt/tomcat/logs/catalina.out
+
+  fields:
+    service: tomcat
+    log_type: catalina
+  fields_under_root: true
+
+  parsers:
+    - multiline:
+        type: pattern
+        pattern: '^[[:space:]]+(at|\.{3})[[:space:]]+|^[[:space:]]*(Caused by:|Suppressed:)'
+        negate: false
+        match: after
