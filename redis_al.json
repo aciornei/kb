@@ -1,0 +1,517 @@
+{
+  "apiVersion": 1,
+  "groups": [
+    {
+      "orgId": 1,
+      "name": "Redis-HA",
+      "folder": "Redis",
+      "interval": "30s",
+      "rules": [
+        {
+          "uid": "redis-ha-masters",
+          "title": "RedisMastersUnbalanced",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "REPLACE_PROMETHEUS_UID",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "REPLACE_PROMETHEUS_UID"
+                },
+                "expr": "sum by (vm) (label_replace(redis_up{job=\"redis_exporter_targets\",instance_role=\"master\"}, \"vm\", \"$1\", \"instance\", \"redis://([^:]+):[0-9]+\")) or (0 * sum by (vm) (label_replace(up{job=\"redis_exporter_targets\"}, \"vm\", \"$1\", \"instance\", \"redis://([^:]+):[0-9]+\")))",
+                "instant": true,
+                "range": false,
+                "refId": "A",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "A",
+                "type": "threshold",
+                "refId": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        1
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    },
+                    "type": "query"
+                  }
+                ],
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            }
+          ],
+          "noDataState": "NoData",
+          "execErrState": "Error",
+          "for": "1m",
+          "annotations": {
+            "summary": "RedisMastersUnbalanced",
+            "description": "VM {{ $labels.vm }} has {{ $values.A.Value }} active masters.",
+            "__dashboardUid__": "redis-cluster-ha-guard",
+            "__panelId__": "6"
+          },
+          "labels": {
+            "service": "redis",
+            "severity": "critical",
+            "category": "high_availability"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "redis-ha-ha",
+          "title": "RedisHADegraded",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "REPLACE_PROMETHEUS_UID",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "REPLACE_PROMETHEUS_UID"
+                },
+                "expr": "((sum(redis_up{job=\"redis_exporter_targets\"}) or vector(0)) == bool 6) * ((sum(redis_up{job=\"redis_exporter_targets\",instance_role=\"master\"}) or vector(0)) == bool 3) * ((sum(redis_master_link_up{job=\"redis_exporter_targets\"}) or vector(0)) == bool 3) * ((count((sum by (vm) (label_replace(redis_up{job=\"redis_exporter_targets\",instance_role=\"master\"}, \"vm\", \"$1\", \"instance\", \"redis://([^:]+):[0-9]+\")) or (0 * sum by (vm) (label_replace(up{job=\"redis_exporter_targets\"}, \"vm\", \"$1\", \"instance\", \"redis://([^:]+):[0-9]+\")))) == 1) or vector(0)) == bool 3) * ((count((label_replace(redis_master_link_up{job=\"redis_exporter_targets\"}, \"vm\", \"$1\", \"instance\", \"redis://([^:]+):[0-9]+\")) and on(instance,vm) label_replace(redis_master_link_up{job=\"redis_exporter_targets\"}, \"vm\", \"$1\", \"master_host\", \"(.+)\")) or vector(0)) == bool 0) * ((count(count by(master_host,master_port) (redis_master_link_up{job=\"redis_exporter_targets\"} == 1)) or vector(0)) == bool 3) * ((min(redis_cluster_state{job=\"redis_exporter_targets\"}) or vector(0)) == bool 1) * ((sum(up{job=\"redis_exporter_targets\"}) or vector(0)) == bool 6) * ((min(redis_cluster_slots_ok{job=\"redis_exporter_targets\"} and on(instance,job) (redis_up{job=\"redis_exporter_targets\"} == 1)) or vector(0)) == bool 16384)",
+                "instant": true,
+                "range": false,
+                "refId": "A",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "A",
+                "type": "threshold",
+                "refId": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "lt",
+                      "params": [
+                        1
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    },
+                    "type": "query"
+                  }
+                ],
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            }
+          ],
+          "noDataState": "NoData",
+          "execErrState": "Error",
+          "for": "1m",
+          "annotations": {
+            "summary": "RedisHADegraded",
+            "description": "Redis HA readiness checks failed.",
+            "__dashboardUid__": "redis-cluster-ha-guard",
+            "__panelId__": "1"
+          },
+          "labels": {
+            "service": "redis",
+            "severity": "critical",
+            "category": "high_availability"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "redis-ha-cluster",
+          "title": "RedisClusterDown",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "REPLACE_PROMETHEUS_UID",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "REPLACE_PROMETHEUS_UID"
+                },
+                "expr": "min(redis_cluster_state{job=\"redis_exporter_targets\"} and on(instance,job) (redis_up{job=\"redis_exporter_targets\"} == 1))",
+                "instant": true,
+                "range": false,
+                "refId": "A",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "A",
+                "type": "threshold",
+                "refId": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "lt",
+                      "params": [
+                        1
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    },
+                    "type": "query"
+                  }
+                ],
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            }
+          ],
+          "noDataState": "NoData",
+          "execErrState": "Error",
+          "for": "1m",
+          "annotations": {
+            "summary": "RedisClusterDown",
+            "description": "At least one reachable Redis node reports cluster failure.",
+            "__dashboardUid__": "redis-cluster-ha-guard",
+            "__panelId__": "3"
+          },
+          "labels": {
+            "service": "redis",
+            "severity": "critical",
+            "category": "high_availability"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "redis-ha-nodes",
+          "title": "RedisNodeDown",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "REPLACE_PROMETHEUS_UID",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "REPLACE_PROMETHEUS_UID"
+                },
+                "expr": "sum(redis_up{job=\"redis_exporter_targets\"}) or vector(0)",
+                "instant": true,
+                "range": false,
+                "refId": "A",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "A",
+                "type": "threshold",
+                "refId": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "lt",
+                      "params": [
+                        6
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    },
+                    "type": "query"
+                  }
+                ],
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            }
+          ],
+          "noDataState": "NoData",
+          "execErrState": "Error",
+          "for": "1m",
+          "annotations": {
+            "summary": "RedisNodeDown",
+            "description": "Available Redis nodes: {{ $values.A.Value }} / 6.",
+            "__dashboardUid__": "redis-cluster-ha-guard",
+            "__panelId__": "2"
+          },
+          "labels": {
+            "service": "redis",
+            "severity": "warning",
+            "category": "high_availability"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "redis-ha-replication",
+          "title": "RedisReplicationDown",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "REPLACE_PROMETHEUS_UID",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "REPLACE_PROMETHEUS_UID"
+                },
+                "expr": "sum(redis_master_link_up{job=\"redis_exporter_targets\"}) or vector(0)",
+                "instant": true,
+                "range": false,
+                "refId": "A",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "A",
+                "type": "threshold",
+                "refId": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "lt",
+                      "params": [
+                        3
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    },
+                    "type": "query"
+                  }
+                ],
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            }
+          ],
+          "noDataState": "NoData",
+          "execErrState": "Error",
+          "for": "1m",
+          "annotations": {
+            "summary": "RedisReplicationDown",
+            "description": "Healthy replica links: {{ $values.A.Value }} / 3.",
+            "__dashboardUid__": "redis-cluster-ha-guard",
+            "__panelId__": "4"
+          },
+          "labels": {
+            "service": "redis",
+            "severity": "warning",
+            "category": "high_availability"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "redis-ha-monitoring",
+          "title": "RedisMonitoringDown",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "REPLACE_PROMETHEUS_UID",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "REPLACE_PROMETHEUS_UID"
+                },
+                "expr": "sum(up{job=\"redis_exporter_targets\"}) or vector(0)",
+                "instant": true,
+                "range": false,
+                "refId": "A",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "A",
+                "type": "threshold",
+                "refId": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "lt",
+                      "params": [
+                        6
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    },
+                    "type": "query"
+                  }
+                ],
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            }
+          ],
+          "noDataState": "NoData",
+          "execErrState": "Error",
+          "for": "1m",
+          "annotations": {
+            "summary": "RedisMonitoringDown",
+            "description": "Successful exporter scrapes: {{ $values.A.Value }} / 6.",
+            "__dashboardUid__": "redis-cluster-ha-guard",
+            "__panelId__": "5"
+          },
+          "labels": {
+            "service": "redis",
+            "severity": "critical",
+            "category": "high_availability"
+          },
+          "isPaused": false
+        }
+      ]
+    }
+  ]
+}
