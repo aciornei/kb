@@ -1,0 +1,1011 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "NewPrometheus-Intranet",
+      "description": "Select your existing Prometheus datasource",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.4.0"
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "text",
+      "name": "Text",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": []
+  },
+  "description": "Dedicated Redis HA alert dashboard using legacy panel alerts for Grafana 10.x; independent of Unified Alerting.",
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Redis Cluster HA | Legacy Alerting",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**3 VMs · 6 Redis instances · 3 masters · 3 replicas**  \nLegacy Alerting only. Every rule evaluates every 30s and confirms for 1m. All seven rules use the existing Rocket.Chat notification channel (UID: vudJ01p4k).  \nTargets: 172.20.10.80:7001/7002 · 172.20.10.81:7003/7004 · 172.20.10.82:7005/7006."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Masters per VM",
+      "description": "Expected: one master per VM. Two or more on any VM triggers the alert. Missing masters are covered by Masters Count.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (vm) (label_replace(max by (instance) (redis_up{job=\"redis_exporter_targets\",instance=~\"(redis://)?172[.]20[.]10[.](80:700[12]|81:700[34]|82:700[56])\",instance_role=\"master\"}), \"vm\", \"$2\", \"instance\", \"(redis://)?([^:]+):[0-9]+\")) or on (vm) label_replace(vector(0), \"vm\", \"172.20.10.80\", \"__name__\", \".*\") or on (vm) label_replace(vector(0), \"vm\", \"172.20.10.81\", \"__name__\", \".*\") or on (vm) label_replace(vector(0), \"vm\", \"172.20.10.82\", \"__name__\", \".*\")",
+          "instant": false,
+          "range": true,
+          "legendFormat": "{{vm}}",
+          "refId": "A"
+        }
+      ],
+      "alert": {
+        "alertRuleTags": {
+          "severity": "critical",
+          "service": "redis-cluster"
+        },
+        "conditions": [
+          {
+            "evaluator": {
+              "type": "gt",
+              "params": [
+                1
+              ]
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "type": "last",
+              "params": []
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "1m",
+        "frequency": "30s",
+        "handler": 1,
+        "message": "CRITICAL - Multiple Redis masters on the same VM. HA is degraded; rebalance master roles after checking replication.",
+        "name": "Redis-Masters-Unbalanced",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "vudJ01p4k"
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "min": 0,
+          "softMax": 3,
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "alertThreshold": true
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Cluster state",
+      "description": "Expected: 1. Minimum across all reported cluster states; missing all metrics yields 0.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "min(redis_cluster_state{job=\"redis_exporter_targets\",instance=~\"(redis://)?172[.]20[.]10[.](80:700[12]|81:700[34]|82:700[56])\"}) or vector(0)",
+          "instant": false,
+          "range": true,
+          "legendFormat": "Cluster state",
+          "refId": "A"
+        }
+      ],
+      "alert": {
+        "alertRuleTags": {
+          "severity": "critical",
+          "service": "redis-cluster"
+        },
+        "conditions": [
+          {
+            "evaluator": {
+              "type": "lt",
+              "params": [
+                1
+              ]
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "type": "last",
+              "params": []
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "1m",
+        "frequency": "30s",
+        "handler": 1,
+        "message": "CRITICAL - Redis cluster state is FAIL or no cluster state is available. Check quorum, slots and exporter connectivity.",
+        "name": "Redis-Cluster-Down",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "vudJ01p4k"
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "min": 0,
+          "softMax": 1,
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "alertThreshold": true
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Available Redis instances",
+      "description": "Expected: 6. Counts reachable Redis endpoints; missing targets also lower the count.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "count(max by (instance) (redis_up{job=\"redis_exporter_targets\",instance=~\"(redis://)?172[.]20[.]10[.](80:700[12]|81:700[34]|82:700[56])\"} == 1)) or vector(0)",
+          "instant": false,
+          "range": true,
+          "legendFormat": "Reachable instances",
+          "refId": "A"
+        }
+      ],
+      "alert": {
+        "alertRuleTags": {
+          "severity": "critical",
+          "service": "redis-cluster"
+        },
+        "conditions": [
+          {
+            "evaluator": {
+              "type": "lt",
+              "params": [
+                6
+              ]
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "type": "last",
+              "params": []
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "1m",
+        "frequency": "30s",
+        "handler": 1,
+        "message": "CRITICAL - Fewer than six Redis instances are reachable. Check the Redis containers and exporter access.",
+        "name": "Redis-Instance-Down",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "vudJ01p4k"
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "min": 0,
+          "softMax": 6,
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "alertThreshold": true
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Healthy replica links",
+      "description": "Expected: 3. Counts replica master links that are UP on reachable Redis endpoints.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "count(max by (instance) ((redis_master_link_up{job=\"redis_exporter_targets\",instance=~\"(redis://)?172[.]20[.]10[.](80:700[12]|81:700[34]|82:700[56])\"} == 1) and on (instance) (redis_up{job=\"redis_exporter_targets\",instance=~\"(redis://)?172[.]20[.]10[.](80:700[12]|81:700[34]|82:700[56])\"} == 1))) or vector(0)",
+          "instant": false,
+          "range": true,
+          "legendFormat": "Healthy links",
+          "refId": "A"
+        }
+      ],
+      "alert": {
+        "alertRuleTags": {
+          "severity": "critical",
+          "service": "redis-cluster"
+        },
+        "conditions": [
+          {
+            "evaluator": {
+              "type": "lt",
+              "params": [
+                3
+              ]
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "type": "last",
+              "params": []
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "1m",
+        "frequency": "30s",
+        "handler": 1,
+        "message": "CRITICAL - Fewer than three Redis replicas have a healthy master link. Check replication and failover status.",
+        "name": "Redis-Replication-Down",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "vudJ01p4k"
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "min": 0,
+          "softMax": 3,
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "alertThreshold": true
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Active masters",
+      "description": "Expected: exactly 3 active masters.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "count(max by (instance) (redis_up{job=\"redis_exporter_targets\",instance=~\"(redis://)?172[.]20[.]10[.](80:700[12]|81:700[34]|82:700[56])\",instance_role=\"master\"} == 1)) or vector(0)",
+          "instant": false,
+          "range": true,
+          "legendFormat": "Active masters",
+          "refId": "A"
+        }
+      ],
+      "alert": {
+        "alertRuleTags": {
+          "severity": "critical",
+          "service": "redis-cluster"
+        },
+        "conditions": [
+          {
+            "evaluator": {
+              "type": "lt",
+              "params": [
+                3
+              ]
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "type": "last",
+              "params": []
+            },
+            "type": "query"
+          },
+          {
+            "evaluator": {
+              "type": "gt",
+              "params": [
+                3
+              ]
+            },
+            "operator": {
+              "type": "or"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "type": "last",
+              "params": []
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "1m",
+        "frequency": "30s",
+        "handler": 1,
+        "message": "CRITICAL - Active Redis master count is not three. Check cluster quorum and role changes.",
+        "name": "Redis-Masters-Count",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "vudJ01p4k"
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "min": 0,
+          "softMax": 6,
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "alertThreshold": true
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Active replicas",
+      "description": "Expected: exactly 3 active replicas. Accepts both slave and replica role labels.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "count(max by (instance) (redis_up{job=\"redis_exporter_targets\",instance=~\"(redis://)?172[.]20[.]10[.](80:700[12]|81:700[34]|82:700[56])\",instance_role=~\"slave|replica\"} == 1)) or vector(0)",
+          "instant": false,
+          "range": true,
+          "legendFormat": "Active replicas",
+          "refId": "A"
+        }
+      ],
+      "alert": {
+        "alertRuleTags": {
+          "severity": "warning",
+          "service": "redis-cluster"
+        },
+        "conditions": [
+          {
+            "evaluator": {
+              "type": "lt",
+              "params": [
+                3
+              ]
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "type": "last",
+              "params": []
+            },
+            "type": "query"
+          },
+          {
+            "evaluator": {
+              "type": "gt",
+              "params": [
+                3
+              ]
+            },
+            "operator": {
+              "type": "or"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "type": "last",
+              "params": []
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "1m",
+        "frequency": "30s",
+        "handler": 1,
+        "message": "WARNING - Active Redis replica count is not three. Cluster redundancy may be degraded.",
+        "name": "Redis-Replica-Count",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "vudJ01p4k"
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "min": 0,
+          "softMax": 6,
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "alertThreshold": true
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Prometheus scrape health",
+      "description": "Expected: 6. Detects missing or failed scrapes, not necessarily an exporter process failure.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 24,
+        "h": 8
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "count(max by (instance) (up{job=\"redis_exporter_targets\",instance=~\"(redis://)?172[.]20[.]10[.](80:700[12]|81:700[34]|82:700[56])\"} == 1)) or vector(0)",
+          "instant": false,
+          "range": true,
+          "legendFormat": "Successful scrapes",
+          "refId": "A"
+        }
+      ],
+      "alert": {
+        "alertRuleTags": {
+          "severity": "critical",
+          "service": "redis-cluster"
+        },
+        "conditions": [
+          {
+            "evaluator": {
+              "type": "lt",
+              "params": [
+                6
+              ]
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "type": "last",
+              "params": []
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "1m",
+        "frequency": "30s",
+        "handler": 1,
+        "message": "CRITICAL - Prometheus cannot scrape all six Redis targets via the exporter. Check exporter, HTTP connectivity and scrape configuration.",
+        "name": "Redis-Exporter-Down",
+        "noDataState": "alerting",
+        "notifications": [
+          {
+            "uid": "vudJ01p4k"
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "min": 0,
+          "softMax": 6,
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "alertThreshold": true
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "redis",
+    "ha",
+    "legacy-alerting"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Redis Cluster HA - Legacy Alerts",
+  "uid": "redis-cluster-ha-legacy-alerts",
+  "version": 2,
+  "weekStart": ""
+}
